@@ -60,31 +60,37 @@ pipeline {
     }
 
     stage('Deploy to EC2 Host') {
-  agent any
-  steps {
-    script {
-      echo '🚀 Deploying calculator app on EC2 host via SSH...'
-      
-      def ec2Host = "ubuntu@3.135.237.209"
-      
-      sshagent(['ec2-ssh-key']) {
-        sh """
-          ssh -o StrictHostKeyChecking=no ${ec2Host} '
-            docker stop calculator-app 2>/dev/null || true
-            docker rm calculator-app 2>/dev/null || true
-            docker run -d \
-              --name calculator-app \
-              -p 8081:8080 \
-              --restart unless-stopped \
-              kmn1624/calculator-app:latest
-            docker ps | grep calculator-app
-          '
-        """
+      agent any
+      steps {
+        script {
+          echo '🚀 Deploying calculator app on EC2 host via SSH...'
+
+          def ec2Host = "ubuntu@3.135.237.209"
+
+          // ✅ Using withCredentials instead of sshagent for better reliability inside Dockerized Jenkins
+          withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+            sh """
+              echo '🔑 Using SSH key from Jenkins credentials...'
+              ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${ec2Host} '
+                echo "🔄 Stopping and removing old container (if any)..."
+                docker stop calculator-app 2>/dev/null || true
+                docker rm calculator-app 2>/dev/null || true
+
+                echo "🚢 Running new container..."
+                docker run -d \
+                  --name calculator-app \
+                  -p 8081:8080 \
+                  --restart unless-stopped \
+                  kmn1624/calculator-app:latest
+
+                echo "✅ Deployment complete! Running containers:"
+                docker ps | grep calculator-app || echo "⚠️ No container found!"
+              '
+            """
+          }
+        }
       }
     }
-  }
-}
-
 
     stage('Health Check') {
       agent any
@@ -92,17 +98,20 @@ pipeline {
         script {
           echo '🏥 Performing health check...'
 
-          // Health check via SSH to EC2 host
           def ec2Host = "ubuntu@3.135.237.209"
-          sh """
-            ssh -o StrictHostKeyChecking=no ${ec2Host} '
-              sleep 5
-              curl -f http://localhost:8081 || echo "⚠️ Application might not be ready yet"
-              echo ""
-              echo "✅ Container Status:"
-              docker ps | grep calculator-app
-            '
-          """
+          withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+            sh """
+              ssh -i $SSH_KEY -o StrictHostKeyChecking=no ${ec2Host} '
+                echo "⏳ Waiting for app to start..."
+                sleep 5
+                echo "🔍 Checking application health..."
+                curl -f http://localhost:8081 || echo "⚠️ Application might not be ready yet"
+                echo ""
+                echo "✅ Container Status:"
+                docker ps | grep calculator-app
+              '
+            """
+          }
         }
       }
     }
