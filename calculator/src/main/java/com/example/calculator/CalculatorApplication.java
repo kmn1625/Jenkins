@@ -11,14 +11,6 @@ public class CalculatorApplication {
         SpringApplication.run(CalculatorApplication.class, args);
     }
 }
-
-@Controller
-class CalculatorController {
-    
-    @GetMapping("/")
-    public String home() {
-        return "calculator";
-    }
     
     @PostMapping("/calculate")
     @ResponseBody
