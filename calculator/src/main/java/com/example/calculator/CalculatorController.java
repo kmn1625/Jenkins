@@ -8,7 +8,7 @@ public class CalculatorController {
 
     @GetMapping("/")
     public String home() {
-        return "calculator"; // This renders templates/calculator.html
+        return "calculator"; // Renders src/main/resources/templates/calculator.html
     }
 
     @PostMapping("/calculate")
