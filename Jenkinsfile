@@ -60,31 +60,31 @@ pipeline {
     }
 
     stage('Deploy to EC2 Host') {
-      agent any
-      steps {
-        script {
-          echo '🚀 Deploying calculator app on EC2 host via SSH...'
-
-          // Replace with your EC2 host IP and SSH user
-          def ec2Host = "ubuntu@3.135.237.209"
-
-          sh """
-            ssh -o StrictHostKeyChecking=no ${ec2Host} '
-              docker stop calculator-app 2>/dev/null || true
-              docker rm calculator-app 2>/dev/null || true
-              docker run -d \
-                --name calculator-app \
-                -p 8081:8080 \
-                --restart unless-stopped \
-                kmn1624/calculator-app:latest
-              docker ps | grep calculator-app
-            '
-          """
-
-          echo '✅ Deployment via SSH completed!'
-        }
+  agent any
+  steps {
+    script {
+      echo '🚀 Deploying calculator app on EC2 host via SSH...'
+      
+      def ec2Host = "ubuntu@3.135.237.209"
+      
+      sshagent(['ec2-ssh-key']) {
+        sh """
+          ssh -o StrictHostKeyChecking=no ${ec2Host} '
+            docker stop calculator-app 2>/dev/null || true
+            docker rm calculator-app 2>/dev/null || true
+            docker run -d \
+              --name calculator-app \
+              -p 8081:8080 \
+              --restart unless-stopped \
+              kmn1624/calculator-app:latest
+            docker ps | grep calculator-app
+          '
+        """
       }
     }
+  }
+}
+
 
     stage('Health Check') {
       agent any
