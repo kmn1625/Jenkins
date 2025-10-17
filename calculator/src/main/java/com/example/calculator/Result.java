@@ -9,9 +9,19 @@ public class Result {
         this.error = error;
     }
 
-    public double getResult() { return result; }
-    public void setResult(double result) { this.result = result; }
+    public double getResult() {
+        return result;
+    }
 
-    public String getError() { return error; }
-    public void setError(String error) { this.error = error; }
+    public void setResult(double result) {
+        this.result = result;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
 }
